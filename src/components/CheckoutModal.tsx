@@ -43,34 +43,26 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
     }
   };
 
+  // --- FUNGSI HANDLE SUBMIT TERBARU ---
   const handleSubmit = async () => {
     if (!file) return;
     setLoading(true);
 
     try {
-      // 1. Upload file ke Supabase Storage
+      // 1. Upload File ke Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      // PERBAIKAN: Langsung nama file tanpa path folder agar tidak sangkut di Policy
-      const filePath = fileName;
-
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
-        .upload(filePath, file, {
-          upsert: true // Mencegah error jika file sudah ada
-        });
+        .upload(fileName, file, { upsert: true });
 
-      if (uploadError) {
-        console.error("Storage Error:", uploadError.message);
-        throw new Error("Gagal mengunggah bukti transfer.");
-      }
+      if (uploadError) throw new Error(`Storage: ${uploadError.message}`);
 
-      // Ambil Public URL gambar
-      const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(fileName);
       const publicUrl = urlData.publicUrl;
 
-      // 2. Simpan data ke tabel 'transaksi'
+      // 2. Simpan ke Database
       const { error: dbError } = await supabase
         .from('transaksi')
         .insert({
@@ -82,32 +74,19 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
           status: 'Pending'
         });
 
-      if (dbError) {
-        console.error("Database Error:", dbError.message);
-        throw new Error("Gagal menyimpan data transaksi.");
-      }
+      if (dbError) throw new Error(`Database: ${dbError.message}`);
 
-      // 3. KIRIM NOTIFIKASI KE EMAIL ADMIN
-      try {
-        await fetch('/api/notify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nama: name,
-            email: email,
-            wa: wa,
-            produk: product.title,
-            linkBukti: publicUrl
-          }),
-        });
-      } catch (emailErr) {
-        console.error("Gagal mengirim notifikasi email:", emailErr);
-      }
+      // 3. Notifikasi Email (Optional)
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nama: name, email, wa, produk: product.title, linkBukti: publicUrl }),
+      }).catch(e => console.error("Email notify error:", e));
 
-      setStep(4);
+      setStep(4); // Sukses!
     } catch (error: any) {
-      console.error("Checkout detail error:", error);
-      alert(error.message || "Terjadi kesalahan. Pastikan koneksi internet stabil.");
+      console.error("Reset Test Error:", error);
+      alert(error.message);
     } finally {
       setLoading(false);
     }
@@ -137,7 +116,7 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
                 <input
                   type="text" required
                   value={name} onChange={e => setName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
                   placeholder="Masukkan nama Anda"
                 />
               </div>
@@ -146,7 +125,7 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
                 <input
                   type="email" required
                   value={email} onChange={e => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
                   placeholder="nama@email.com"
                 />
               </div>
@@ -155,7 +134,7 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
                 <input
                   type="tel" required
                   value={wa} onChange={e => setWa(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 dark:bg-slate-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
                   placeholder="081234567890"
                 />
               </div>
@@ -182,7 +161,7 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
                 <h4 className="font-semibold text-gray-700 dark:text-slate-200">Instruksi Transfer:</h4>
                 <div className="p-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 dark:bg-slate-800 relative group">
                   <p className="text-xs text-gray-400 uppercase font-bold mb-1">Bank Central Asia (BCA)</p>
-                  <p className="text-xl font-mono font-bold tracking-widest text-secondary">8240 8179 19</p>
+                  <p className="text-xl font-mono font-bold tracking-widest text-blue-600 dark:text-blue-400">8240 8179 19</p>
                   <p className="text-sm font-medium text-gray-600 dark:text-slate-400">a.n. Anindya Cipta Putri</p>
                 </div>
               </div>
