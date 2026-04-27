@@ -12,14 +12,30 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        // Warna Utama: Kuning Cerah Poster
         primary: {
-          DEFAULT: "var(--primary)",
-          foreground: "var(--primary-foreground)",
+          DEFAULT: "#F9D423",
+          foreground: "#1E40AF", // Tulisan di atas kuning jadi Biru Tua
+        },
+        // Warna Sekunder: Biru Poster
+        secondary: {
+          DEFAULT: "#1E40AF",
+          foreground: "#FFFFFF", // Tulisan di atas biru jadi Putih
+        },
+        // Warna Aksen: Merah (seperti balon HTM 135K)
+        accent: {
+          DEFAULT: "#EF4444",
+          foreground: "#FFFFFF",
         },
         card: {
           DEFAULT: "var(--card)",
           foreground: "var(--card-foreground)",
         },
+      },
+      // Menambahkan font yang lebih ramah anak (opsional)
+      borderRadius: {
+        lg: "1rem",
+        xl: "1.5rem",
       },
     },
   },
