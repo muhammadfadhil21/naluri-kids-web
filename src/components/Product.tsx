@@ -1,5 +1,5 @@
 "use client";
-import { Product as ProductType } from "./data/product";
+import { Product as ProductType } from "@/data/products";
 
 interface ProductProps {
     product: ProductType;
