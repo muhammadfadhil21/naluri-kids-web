@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Upload, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import type { Product } from "@/data/products"; // Pastikan path import ini benar
+import type { Product } from "@/data/products";
 
 type CheckoutModalProps = {
   product: Product;
@@ -48,7 +48,7 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
     setLoading(true);
 
     try {
-      // 1. Upload file to Supabase Storage
+      // 1. Upload file ke Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `receipts/${fileName}`;
@@ -57,30 +57,50 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
         .from('payment-proofs')
         .upload(filePath, file);
 
-      let publicUrl = "";
+      if (uploadError) throw uploadError;
 
-      if (!uploadError) {
-        const { data } = supabase.storage.from('payment-proofs').getPublicUrl(filePath);
-        publicUrl = data.publicUrl;
-      }
+      // Ambil Public URL gambar
+      const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(filePath);
+      const publicUrl = urlData.publicUrl;
 
-      // 2. Insert record to database 'transaksi'
+      // 2. Simpan data ke tabel 'transaksi'
       const { error: dbError } = await supabase
         .from('transaksi')
         .insert({
           nama_pembeli: name,
           email: email,
           wa: wa,
-          nama_produk: product.title, // SUDAH DIGANTI: Menggunakan .title
+          nama_produk: product.title,
           bukti_transfer_url: publicUrl,
+          status: 'Pending' // Default status
         });
 
       if (dbError) throw dbError;
 
+      // 3. KIRIM NOTIFIKASI KE EMAIL ADMIN (RESEND)
+      // Ini bagian yang kita tambahkan
+      try {
+        await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nama: name,
+            email: email,
+            wa: wa,
+            produk: product.title,
+            linkBukti: publicUrl
+          }),
+        });
+      } catch (emailErr) {
+        // Kita tidak 'throw' error di sini supaya pendaftaran tetap dianggap sukses 
+        // di mata user meskipun notifikasi email gagal terkirim.
+        console.error("Gagal mengirim notifikasi email:", emailErr);
+      }
+
       setStep(4);
     } catch (error) {
       console.error("Checkout error:", error);
-      alert("Terjadi kesalahan. Pastikan tabel 'transaksi' dan storage 'payment-proofs' sudah ada di Supabase.");
+      alert("Terjadi kesalahan. Pastikan database dan storage sudah siap.");
     } finally {
       setLoading(false);
     }
@@ -92,7 +112,7 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
 
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50">
-          <h3 className="font-bold text-lg line-clamp-1">Checkout - {product.title}</h3>
+          <h3 className="font-bold text-lg line-clamp-1 text-slate-800 dark:text-white">Checkout - {product.title}</h3>
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors"
@@ -154,11 +174,11 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
               </div>
 
               <div className="space-y-3">
-                <h4 className="font-semibold text-gray-700">Instruksi Transfer:</h4>
-                <div className="p-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 relative group">
+                <h4 className="font-semibold text-gray-700 dark:text-slate-200">Instruksi Transfer:</h4>
+                <div className="p-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 dark:bg-slate-800 relative group">
                   <p className="text-xs text-gray-400 uppercase font-bold mb-1">Bank Central Asia (BCA)</p>
                   <p className="text-xl font-mono font-bold tracking-widest text-secondary">8240 8179 19</p>
-                  <p className="text-sm font-medium text-gray-600">a.n. Anindya Cipta Putri</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-slate-400">a.n. Anindya Cipta Putri</p>
                 </div>
               </div>
 
@@ -174,9 +194,10 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
           {/* Step 3: Upload Bukti */}
           {step === 3 && (
             <div className="space-y-6 text-center">
-              <div className="border-2 border-dashed border-gray-300 rounded-3xl p-10 hover:bg-gray-50 transition-all relative group cursor-pointer">
+              <div className="border-2 border-dashed border-gray-300 rounded-3xl p-10 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all relative group cursor-pointer">
                 <input
                   type="file"
+                  required
                   accept="image/*"
                   onChange={handleFileChange}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -192,7 +213,7 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
                     </div>
                   ) : (
                     <div>
-                      <p className="font-bold text-gray-700">Upload Bukti Transfer</p>
+                      <p className="font-bold text-gray-700 dark:text-slate-200">Upload Bukti Transfer</p>
                       <p className="text-xs text-gray-400">Ambil foto struk atau screenshot</p>
                     </div>
                   )}
@@ -216,7 +237,7 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
                 <CheckCircle2 className="text-green-500" size={48} />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-gray-800">Pembayaran Terkirim!</h3>
+                <h3 className="text-2xl font-black text-gray-800 dark:text-white">Pembayaran Terkirim!</h3>
                 <p className="text-gray-500 text-sm px-6">
                   Terima kasih, Kak! Pembayaran untuk <b>{product.title}</b> akan kami verifikasi. Konfirmasi akan dikirim ke WhatsApp <b>{wa}</b>.
                 </p>
