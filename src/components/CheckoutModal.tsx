@@ -156,9 +156,9 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
               <div className="space-y-3">
                 <h4 className="font-semibold text-gray-700">Instruksi Transfer:</h4>
                 <div className="p-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 relative group">
-                  <p className="text-xs text-gray-400 uppercase font-bold mb-1">Bank Mandiri / BCA</p>
-                  <p className="text-xl font-mono font-bold tracking-widest text-secondary">123 456 7890</p>
-                  <p className="text-sm font-medium text-gray-600">a.n. Naluri Kids Tuban</p>
+                  <p className="text-xs text-gray-400 uppercase font-bold mb-1">Bank Central Asia (BCA)</p>
+                  <p className="text-xl font-mono font-bold tracking-widest text-secondary">8240 8179 19</p>
+                  <p className="text-sm font-medium text-gray-600">a.n. Anindya Cipta Putri</p>
                 </div>
               </div>
 
