@@ -51,7 +51,7 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
       // 1. Upload file ke Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `receipts/${fileName}`;
+      const filePath = `public/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
