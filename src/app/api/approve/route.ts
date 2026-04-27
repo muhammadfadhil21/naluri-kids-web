@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     // 1. Cari produk untuk mendapatkan link download-nya
-    const product = products.find((p) => p.name === nama_produk);
+    const product = products.find((p) => p.title === nama_produk);
     const downloadUrl = product?.downloadUrl || "https://naluri-kids.com/contact-support";
 
     // 2. Update status di Supabase menjadi 'Success'
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     // 3. Kirim Email menggunakan Resend
     // Pastikan mengirim dari domain yang sudah di-verifikasi di Resend
     // Contoh: 'noreply@domain-anda.com'
-    const senderEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'; 
+    const senderEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
     const { error: emailError } = await resend.emails.send({
       from: `Naluri Kids <${senderEmail}>`,
