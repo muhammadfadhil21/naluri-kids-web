@@ -51,13 +51,20 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
       // 1. Upload file ke Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `public/${fileName}`;
+
+      // PERBAIKAN: Langsung nama file tanpa path folder agar tidak sangkut di Policy
+      const filePath = fileName;
 
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          upsert: true // Mencegah error jika file sudah ada
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Storage Error:", uploadError.message);
+        throw new Error("Gagal mengunggah bukti transfer.");
+      }
 
       // Ambil Public URL gambar
       const { data: urlData } = supabase.storage.from('payment-proofs').getPublicUrl(filePath);
@@ -72,13 +79,15 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
           wa: wa,
           nama_produk: product.title,
           bukti_transfer_url: publicUrl,
-          status: 'Pending' // Default status
+          status: 'Pending'
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error("Database Error:", dbError.message);
+        throw new Error("Gagal menyimpan data transaksi.");
+      }
 
-      // 3. KIRIM NOTIFIKASI KE EMAIL ADMIN (RESEND)
-      // Ini bagian yang kita tambahkan
+      // 3. KIRIM NOTIFIKASI KE EMAIL ADMIN
       try {
         await fetch('/api/notify', {
           method: 'POST',
@@ -92,15 +101,13 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
           }),
         });
       } catch (emailErr) {
-        // Kita tidak 'throw' error di sini supaya pendaftaran tetap dianggap sukses 
-        // di mata user meskipun notifikasi email gagal terkirim.
         console.error("Gagal mengirim notifikasi email:", emailErr);
       }
 
       setStep(4);
-    } catch (error) {
-      console.error("Checkout error:", error);
-      alert("Terjadi kesalahan. Pastikan database dan storage sudah siap.");
+    } catch (error: any) {
+      console.error("Checkout detail error:", error);
+      alert(error.message || "Terjadi kesalahan. Pastikan koneksi internet stabil.");
     } finally {
       setLoading(false);
     }
@@ -123,7 +130,6 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
 
         {/* Body */}
         <div className="p-6">
-          {/* Step 1: Identitas */}
           {step === 1 && (
             <form onSubmit={handleNextStep1} className="space-y-4">
               <div>
@@ -156,14 +162,13 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
 
               <button
                 type="submit"
-                className="w-full mt-6 flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-2xl font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-[0.98]"
+                className="w-full mt-6 flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-2xl font-bold hover:shadow-lg transition-all active:scale-[0.98]"
               >
                 Lanjut ke Pembayaran <ArrowRight size={18} />
               </button>
             </form>
           )}
 
-          {/* Step 2: Instruksi Pembayaran */}
           {step === 2 && (
             <div className="space-y-6">
               <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 text-center">
@@ -191,7 +196,6 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
             </div>
           )}
 
-          {/* Step 3: Upload Bukti */}
           {step === 3 && (
             <div className="space-y-6 text-center">
               <div className="border-2 border-dashed border-gray-300 rounded-3xl p-10 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all relative group cursor-pointer">
@@ -230,7 +234,6 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
             </div>
           )}
 
-          {/* Step 4: Sukses */}
           {step === 4 && (
             <div className="text-center py-10 space-y-5 animate-in slide-in-from-bottom duration-500">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
