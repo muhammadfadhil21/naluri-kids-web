@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Upload, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { Product } from "@/data/products"; // Pastikan path import ini benar
+import type { Product } from "@/data/products"; // Pastikan path import ini benar
 
 type CheckoutModalProps = {
   product: Product;
