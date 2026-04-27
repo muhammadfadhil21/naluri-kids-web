@@ -3,14 +3,18 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Product as ProductType } from "@/data/products";
 import Product from "./Product";
-import CheckoutModal from "./CheckoutModal"; // Import modalnya
+import ProgramModal from "./ProgramModal";
+import CheckoutModal from "./CheckoutModal";
 
 export default function Catalog() {
     const [items, setItems] = useState<ProductType[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Logika untuk menyimpan produk yang sedang dipilih
-    const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(null);
+    // State untuk Modal Detail Program (Pop-out info)
+    const [viewingProduct, setViewingProduct] = useState<ProductType | null>(null);
+    
+    // State untuk Modal Checkout (Form pendaftaran)
+    const [checkoutProduct, setCheckoutProduct] = useState<ProductType | null>(null);
 
     useEffect(() => {
         async function fetchPrograms() {
@@ -32,16 +36,30 @@ export default function Catalog() {
                     <Product
                         key={item.id}
                         product={item}
-                        onOpenModal={() => setSelectedProduct(item)} // Kirim fungsi klik ke kartu
+                        // Saat kartu/poster diklik, buka Modal Detail (viewingProduct)
+                        onOpenModal={() => setViewingProduct(item)} 
                     />
                 ))}
             </div>
 
-            {/* Jika ada produk yang dipilih, tampilkan modalnya */}
-            {selectedProduct && (
+            {/* Jika ada produk yang sedang di-view, tampilkan ProgramModal (Info Detail) */}
+            {viewingProduct && (
+                <ProgramModal
+                    product={viewingProduct}
+                    onClose={() => setViewingProduct(null)}
+                    onDaftar={() => {
+                        // Tutup detail, buka checkout
+                        setCheckoutProduct(viewingProduct);
+                        setViewingProduct(null);
+                    }}
+                />
+            )}
+
+            {/* Jika tombol "Daftar Sekarang" ditekan, tampilkan CheckoutModal (Form) */}
+            {checkoutProduct && (
                 <CheckoutModal
-                    product={selectedProduct}
-                    onClose={() => setSelectedProduct(null)}
+                    product={checkoutProduct}
+                    onClose={() => setCheckoutProduct(null)}
                 />
             )}
         </section>

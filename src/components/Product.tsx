@@ -10,7 +10,10 @@ export default function Product({ product, onOpenModal }: ProductProps) {
     return (
         <div className="group bg-white rounded-3xl shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 flex flex-col h-full">
             {/* Container Gambar */}
-            <div className="relative h-64 overflow-hidden">
+            <div 
+                className="relative h-64 overflow-hidden cursor-pointer"
+                onClick={onOpenModal}
+            >
                 <img
                     src={product.image_url}
                     alt={product.title}
