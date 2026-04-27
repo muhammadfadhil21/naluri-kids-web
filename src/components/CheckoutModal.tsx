@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Upload, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import type { Product } from "@/data/products";
+import type { Product } from "@/data/products"; // Pastikan path import ini benar
 
 type CheckoutModalProps = {
   product: Product;
@@ -13,7 +13,7 @@ type CheckoutModalProps = {
 export default function CheckoutModal({ product, onClose }: CheckoutModalProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [loading, setLoading] = useState(false);
-  
+
   // Form state
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -48,33 +48,30 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
     setLoading(true);
 
     try {
-      // 1. Upload file to Supabase Storage (assuming bucket 'payment-proofs' exists)
-      // Note: In real app, we handle bucket existence and policies.
+      // 1. Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `receipts/${fileName}`;
 
-      const { error: uploadError, data: uploadData } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
         .upload(filePath, file);
 
-      let publicUrl = "https://placeholder-url.com/receipt.jpg";
-      
+      let publicUrl = "";
+
       if (!uploadError) {
         const { data } = supabase.storage.from('payment-proofs').getPublicUrl(filePath);
         publicUrl = data.publicUrl;
-      } else {
-        console.warn("Storage upload failed, proceeding with placeholder URL for demo.");
       }
 
-      // 2. Insert record to database
+      // 2. Insert record to database 'transaksi'
       const { error: dbError } = await supabase
         .from('transaksi')
         .insert({
           nama_pembeli: name,
           email: email,
           wa: wa,
-          nama_produk: product.name,
+          nama_produk: product.title, // SUDAH DIGANTI: Menggunakan .title
           bukti_transfer_url: publicUrl,
         });
 
@@ -83,22 +80,22 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
       setStep(4);
     } catch (error) {
       console.error("Checkout error:", error);
-      alert("Terjadi kesalahan saat memproses pesanan. Pastikan Supabase sudah diatur dengan benar.");
+      alert("Terjadi kesalahan. Pastikan tabel 'transaksi' dan storage 'payment-proofs' sudah ada di Supabase.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden relative animate-in fade-in zoom-in duration-300">
-        
+
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center">
-          <h3 className="font-bold text-lg">Checkout - {product.name}</h3>
-          <button 
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50">
+          <h3 className="font-bold text-lg line-clamp-1">Checkout - {product.title}</h3>
+          <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors"
           >
             <X size={20} />
           </button>
@@ -111,35 +108,35 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
             <form onSubmit={handleNextStep1} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Nama Lengkap</label>
-                <input 
+                <input
                   type="text" required
                   value={name} onChange={e => setName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
                   placeholder="Masukkan nama Anda"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Email</label>
-                <input 
+                <input
                   type="email" required
                   value={email} onChange={e => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
                   placeholder="nama@email.com"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">No. WhatsApp</label>
-                <input 
+                <input
                   type="tel" required
                   value={wa} onChange={e => setWa(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
                   placeholder="081234567890"
                 />
               </div>
-              
-              <button 
+
+              <button
                 type="submit"
-                className="w-full mt-6 flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-xl font-bold hover:bg-blue-600 transition-colors"
+                className="w-full mt-6 flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-2xl font-bold hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-[0.98]"
               >
                 Lanjut ke Pembayaran <ArrowRight size={18} />
               </button>
@@ -149,25 +146,25 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
           {/* Step 2: Instruksi Pembayaran */}
           {step === 2 && (
             <div className="space-y-6">
-              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-center">
-                <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">Total Tagihan</p>
-                <p className="text-3xl font-black text-blue-700 dark:text-blue-300">
+              <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 text-center">
+                <p className="text-sm text-gray-500 mb-1">Total Tagihan</p>
+                <p className="text-3xl font-black text-primary">
                   {formatPrice(product.price)}
                 </p>
               </div>
 
-              <div>
-                <h4 className="font-semibold mb-2">Instruksi Transfer:</h4>
-                <div className="p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Bank BCA</p>
-                  <p className="text-xl font-mono font-bold tracking-wider mb-1">123 456 7890</p>
-                  <p className="text-sm font-medium">a.n. Nama Saya</p>
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-700">Instruksi Transfer:</h4>
+                <div className="p-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 relative group">
+                  <p className="text-xs text-gray-400 uppercase font-bold mb-1">Bank Mandiri / BCA</p>
+                  <p className="text-xl font-mono font-bold tracking-widest text-secondary">123 456 7890</p>
+                  <p className="text-sm font-medium text-gray-600">a.n. Naluri Kids Tuban</p>
                 </div>
               </div>
 
-              <button 
+              <button
                 onClick={handleNextStep2}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-xl font-bold hover:bg-blue-600 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-2xl font-bold hover:shadow-lg transition-all"
               >
                 Saya Sudah Transfer
               </button>
@@ -176,49 +173,59 @@ export default function CheckoutModal({ product, onClose }: CheckoutModalProps) 
 
           {/* Step 3: Upload Bukti */}
           {step === 3 && (
-            <div className="space-y-6">
-              <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-                Silakan upload foto struk atau screenshot bukti transfer Anda.
-              </p>
-              
-              <div className="border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-2xl p-8 text-center hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors relative">
-                <input 
-                  type="file" 
+            <div className="space-y-6 text-center">
+              <div className="border-2 border-dashed border-gray-300 rounded-3xl p-10 hover:bg-gray-50 transition-all relative group cursor-pointer">
+                <input
+                  type="file"
                   accept="image/*"
                   onChange={handleFileChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 />
-                <Upload className="mx-auto text-gray-400 mb-3" size={32} />
-                {file ? (
-                  <p className="font-medium text-primary">{file.name}</p>
-                ) : (
-                  <p className="font-medium">Klik atau seret gambar ke sini</p>
-                )}
+                <div className="space-y-3">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                    <Upload className="text-primary" size={28} />
+                  </div>
+                  {file ? (
+                    <div className="space-y-1">
+                      <p className="font-bold text-primary">{file.name}</p>
+                      <p className="text-xs text-gray-400">Klik untuk mengganti foto</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="font-bold text-gray-700">Upload Bukti Transfer</p>
+                      <p className="text-xs text-gray-400">Ambil foto struk atau screenshot</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <button 
+              <button
                 onClick={handleSubmit}
                 disabled={!file || loading}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-white rounded-xl font-bold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 py-4 bg-primary text-white rounded-2xl font-bold disabled:opacity-40 disabled:cursor-not-allowed shadow-xl shadow-primary/20"
               >
-                {loading ? <Loader2 className="animate-spin" size={20} /> : "Kirim Bukti Pembayaran"}
+                {loading ? <Loader2 className="animate-spin" size={20} /> : "Kirim Sekarang"}
               </button>
             </div>
           )}
 
           {/* Step 4: Sukses */}
           {step === 4 && (
-            <div className="text-center py-8 space-y-4">
-              <CheckCircle2 className="mx-auto text-green-500" size={64} />
-              <h3 className="text-2xl font-bold">Terima Kasih!</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Pesanan Anda sedang kami proses. Kami akan menghubungi Anda melalui WhatsApp ({wa}) segera setelah pembayaran diverifikasi.
-              </p>
-              <button 
+            <div className="text-center py-10 space-y-5 animate-in slide-in-from-bottom duration-500">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle2 className="text-green-500" size={48} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-gray-800">Pembayaran Terkirim!</h3>
+                <p className="text-gray-500 text-sm px-6">
+                  Terima kasih, Kak! Pembayaran untuk <b>{product.title}</b> akan kami verifikasi. Konfirmasi akan dikirim ke WhatsApp <b>{wa}</b>.
+                </p>
+              </div>
+              <button
                 onClick={onClose}
-                className="mt-6 px-8 py-3 bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
+                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-colors"
               >
-                Tutup
+                Selesai
               </button>
             </div>
           )}
